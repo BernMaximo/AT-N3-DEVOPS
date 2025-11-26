@@ -33,7 +33,7 @@ const provider = new GoogleAuthProvider();
 // Firestore
 const db = getFirestore(app);
 
-export default function AIBox() {
+export default function AIBox(): JSX.Element {
   const [q, setQ] = useState("");
   const [r, setR] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,10 +41,40 @@ export default function AIBox() {
 
   const ask = async () => {
     setLoading(true);
-    const result = await model.generateContent(q);
-    setR(result.response.text());
-    setLock(true);
-    setLoading(false);
+    try {
+      const result: any = await model.generateContent(q);
+      // result.response.text() may be a function that returns a Promise (like fetch Response)
+      let text = "";
+      if (result?.response && typeof result.response.text === "function") {
+        text = await result.response.text();
+      } else if (result?.response) {
+        text = String(result.response);
+      } else {
+        text = String(result ?? "");
+      }
+      setR(text);
+      setLock(true);
+    } catch (err) {
+      setR(String(err));
+    } finally {
+      setLoading(false);
+    }
   };
-};
+
+  return (
+    <div>
+      input:{" YES "}
+      <input
+        type="text"
+        value={q}
+        onChange={(e) => setQ((e.target as HTMLInputElement).value)}
+      />
+      <button onClick={ask} disabled={loading || lock}>
+        {loading ? "Loading..." : "Ask"}
+      </button>
+      <div>{r}</div>
+    </div>
+  );
+}
+
 export { auth, provider, db, AIBox };
